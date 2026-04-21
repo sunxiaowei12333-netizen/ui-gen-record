@@ -31,7 +31,7 @@ bash ~/.cursor/skills/ui-gen-record/scripts/bootstrap.sh
 
 1. 通过 `lark-cli auth list` 拿到当前用户的 open_id
 2. 以 bot 身份创建 Base，里面的表叫 `UI页面生成记录`
-3. 建好业务字段 + 1 个辅助公式字段 `月份`（见下表）
+3. 建好标准字段 + 3 个辅助公式字段（见下表）
 4. 视图按 `月份` 降序分组
 5. 创建仪表盘 `UI生成实时统计` 并填入 6 个 block（见下文）
 6. 把当前用户加为 `full_access`，然后把 owner 转给该用户
@@ -50,16 +50,14 @@ bash ~/.cursor/skills/ui-gen-record/scripts/bootstrap.sh
 | 设计稿链接 | text (url) | Figma / Motiff / Pencil 链接 |
 | 使用模型 | select（带颜色标签） | 选项：`Claude Opus 4.7`(紫) / `Claude Sonnet 4.6`(蓝) / `GPT-5.4`(绿) / `Gemini 3 Pro`(橙) / `Gemini 3.1 Pro`(红)，可扩展 |
 | 文件 | attachment | `.tsx` 源码 + 导出 `.zip`（可多个） |
-| 修改次数 | text | 用户提出的所有小改点（含重复） |
-| Token消耗 | number (plain, precision=0, 千分位) | 直接写数字，飞书客户端按 `1,000,000` 渲染；右对齐（number 默认行为）；仪表盘 SUM 直接在这列上跑 |
-| 美元花费 | number (currency, USD, precision=2) | 直接写数字，飞书客户端按 `$25.00` 渲染；右对齐；仪表盘 SUM 直接在这列上跑 |
+| 修改次数 | text | 用户提出的所有小改点（含重复），左对齐 |
+| Token消耗 | number(plain) | `precision=0, thousands_separator=true`，前端展示 `1,000,000`；仪表盘直接 SUM |
+| 美元花费 | number(currency) | `currency_code=USD, precision=2`，前端展示 `$25.00`；仪表盘直接 SUM |
 | 月份 | formula(text) | `TEXT([需求日期], "YYYY-MM")`，视图分组用。Bitable API 对 datetime 分组默认按天，必须用这个文本字段才能按月归类 |
 
-> **`Token消耗` / `美元花费` 直接用 number 字段**——飞书的 `style.thousands_separator` 和 `style.type=currency + currency_code=USD` 原生支持千分位/美元符号展示，不需要再套 formula 做二次格式化；仪表盘 SUM 也直接读同一列。number 字段默认右对齐，是飞书的预设行为，接受它。
->
-> `append.sh` 的外部参数保持兼容：仍然接 `--token-usage "1,000,000"` 和 `--usd-cost "$25.00"`，脚本内部会剥逗号/美元符号后写入 number 字段。
+> `append.sh` 的外部参数保持兼容：仍然可传 `--token-usage "1,000,000"` 和 `--usd-cost "$25.00"`，脚本内部会剥逗号 / 美元符号后作为 number 写入 `Token消耗` / `美元花费`。
 
-默认视图按 `月份` 降序分组（`2026-05` / `2026-04` 各自一组）。`月份` 这列建议在 Bitable UI 里右键列头 → **隐藏字段**，分组继续生效（Open API 不支持通过接口隐藏列）。
+默认视图按 `月份` 降序分组（`2026-05` / `2026-04` 各自一组）。无需隐藏任何列。
 
 ## 仪表盘
 

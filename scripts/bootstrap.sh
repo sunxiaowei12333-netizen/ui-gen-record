@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # 首次建表脚本：
 #   1. 创建飞书多维表格（内含表 UI页面生成记录）
-#   2. 配置业务字段：Token消耗 (number, 千分位) / 美元花费 (number, USD currency)
-#      + 月份 (formula text, 基于需求日期) 用于分组
-#   3. 设置视图按「月份」分组
-#   4. 创建仪表盘「UI生成实时统计」并塞 6 个 block
+#   2. 配置业务字段：
+#      - Token消耗 number(plain, precision=0, thousands_separator) 千分位整数
+#      - 美元花费 number(currency, USD, precision=2)                 $xx.xx
+#      - 月份     formula(text)，从需求日期派生 yyyy-MM
+#   3. 设置视图按「月份」分组（分组生效即可，无需隐藏任何列）
+#   4. 创建仪表盘「UI生成实时统计」并塞 6 个 block，SUM 基于 Token消耗 / 美元花费
 #   5. 把当前 CLI 登录用户加为 full_access，并把 owner 转给该用户
 #   6. 持久化配置到 .config.json
 #
@@ -118,14 +120,12 @@ F_DESIGN_URL="$(create_field  '{"type":"text","name":"设计稿链接","style":{
 F_MODEL="$(create_field '{"type":"select","name":"使用模型","multiple":false,"options":[{"name":"Claude Opus 4.7","hue":"Purple","lightness":"Light"},{"name":"Claude Sonnet 4.6","hue":"Blue","lightness":"Light"},{"name":"GPT-5.4","hue":"Green","lightness":"Light"},{"name":"Gemini 3 Pro","hue":"Orange","lightness":"Light"},{"name":"Gemini 3.1 Pro","hue":"Red","lightness":"Light"}]}')"
 F_MOD_COUNT="$(create_field    '{"type":"text","name":"修改次数","style":{"type":"plain"}}')"
 
-# Token消耗 / 美元花费 是 number 字段，飞书用内置 style 渲染展示样式：
-#   - Token消耗 → plain + 千分位（"1,000,000"）
-#   - 美元花费 → currency + USD（"$25.00"）
-# number 字段在表里默认右对齐，但无须任何手动隐藏步骤。
+# Token消耗：整数 + 千分位（飞书 number 数字字段默认右对齐，通过 style 直接格式化）
+# 美元花费：currency USD，precision=2，飞书前端会渲染成 $25.00
 F_TOKEN_USAGE="$(create_field '{"type":"number","name":"Token消耗","style":{"type":"plain","precision":0,"thousands_separator":true,"percentage":false}}')"
 F_USD_COST="$(create_field    '{"type":"number","name":"美元花费","style":{"type":"currency","precision":2,"currency_code":"USD"}}')"
 
-# 月份 formula 用于视图分组和仪表盘分桶
+# 月份：formula(text)，用于视图分组和仪表盘按月统计
 F_MONTH="$(create_formula '{"type":"formula","name":"月份","expression":"TEXT([需求日期], \"YYYY-MM\")"}')"
 
 # ===== 步骤 5：视图按「月份」降序分组 =====
@@ -222,9 +222,7 @@ echo "[bootstrap] 表格：$BASE_URL"
 echo "[bootstrap] 仪表盘：同一 Base 左侧导航里的「$DASHBOARD_NAME」"
 echo
 echo "[bootstrap] ⚠️  一次性手动微调（API 限制）："
-echo "[bootstrap]   1) 右键「月份」列头 → 隐藏字段"
-echo "[bootstrap]      （分组继续生效，只是不占主视图列位）"
-echo "[bootstrap]   2) 进入「使用最多的模型」和「每月使用最多的模型」两个图表的"
+echo "[bootstrap]   1) 进入「使用最多的模型」和「每月使用最多的模型」两个图表的"
 echo "[bootstrap]      编辑 → 样式 → 图表颜色 → 按分类设置，把系列颜色调成："
 echo "[bootstrap]        Claude Opus 4.7  → 紫 #B66CFF"
 echo "[bootstrap]        Claude Sonnet 4.6 → 蓝 #5B9FFF"

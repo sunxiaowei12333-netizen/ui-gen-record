@@ -53,9 +53,9 @@ BASE_TOKEN="$(jq -r '.base_token' "$CONFIG")"
 TABLE_ID="$(jq   -r '.table_id'   "$CONFIG")"
 BASE_URL="$(jq   -r '.base_url'   "$CONFIG")"
 
-# `Token消耗` / `美元花费` 是 number 字段（飞书用 style 渲染千分位 / 美元符号）。
-# 调用方仍然可以传 "1,000,000" / "$25.00" 这种展示字符串，脚本内部剥掉
-# 千分位逗号和美元符号后写入 number。
+# `Token消耗` / `美元花费` 是 number 字段，飞书原生千分位 / USD 货币格式化。
+# 外部参数保持兼容：允许传 "1,000,000" / "$25.00" 这种人类可读字符串，
+# 这里剥掉分隔符和货币符号后作为 number 写入。
 TOKEN_NUM=""
 if [[ -n "$TOKEN_USAGE" ]]; then
   cleaned="${TOKEN_USAGE//,/}"
