@@ -94,7 +94,7 @@ PAYLOAD="$(jq -n \
   + (if $usd_num     != "" then {"美元花费":($usd_num|tonumber)} else {} end)
   ')"
 
-RESP="$(lark-cli base +record-upsert --as bot --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" --json "$PAYLOAD")"
+RESP="$(lark-cli base +record-upsert --as user --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" --json "$PAYLOAD")"
 RECORD_ID="$(echo "$RESP" | jq -r '.data.record.record_id_list[0] // empty')"
 if [[ -z "$RECORD_ID" ]]; then
   echo "[append] 写入记录失败：$RESP"
@@ -120,7 +120,7 @@ if (( ${#ATTACHMENTS[@]} > 0 )); then
     cp "$src" "$dest"
     ( cd "$TMP_DIR" && \
       sleep 1 && \
-      lark-cli base +record-upload-attachment --as bot \
+      lark-cli base +record-upload-attachment --as user \
         --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" \
         --record-id "$RECORD_ID" --field-id "$FIELD_FILE" \
         --file "./$decoded_base" >/dev/null )

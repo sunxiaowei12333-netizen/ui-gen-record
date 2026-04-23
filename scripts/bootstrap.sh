@@ -23,10 +23,25 @@ TABLE_NAME="${TABLE_NAME:-UI页面生成记录}"
 DASHBOARD_NAME="${DASHBOARD_NAME:-UI生成实时统计}"
 TIME_ZONE="${TIME_ZONE:-Asia/Shanghai}"
 
-if [[ -f "$CONFIG" ]]; then
-  echo "[bootstrap] .config.json 已存在，跳过建表。内容如下："
+FORCE=0
+for arg in "$@"; do
+  case "$arg" in
+    --force|-f) FORCE=1 ;;
+    -h|--help)
+      sed -n '2,15p' "$0"; exit 0 ;;
+  esac
+done
+
+if [[ -f "$CONFIG" && "$FORCE" -ne 1 ]]; then
+  echo "[bootstrap] .config.json 已存在，跳过建表。若要强制新建一张表并切换指向，加 --force。当前配置："
   cat "$CONFIG"
   exit 0
+fi
+
+if [[ -f "$CONFIG" && "$FORCE" -eq 1 ]]; then
+  BACKUP="$CONFIG.bak.$(date +%Y%m%d%H%M%S)"
+  cp "$CONFIG" "$BACKUP"
+  echo "[bootstrap] --force：已将原 .config.json 备份到 $BACKUP，将新建一张表并覆盖配置"
 fi
 
 command -v lark-cli >/dev/null 2>&1 || { echo "[bootstrap] 未找到 lark-cli"; exit 1; }

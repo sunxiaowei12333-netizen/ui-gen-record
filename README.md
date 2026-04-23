@@ -51,10 +51,14 @@ bash scripts/install.sh
 
 对于没有原生 Skill 机制的 Agent（Codex / VS Code Copilot / Cline / Aider 等），在项目根目录 `AGENTS.md` 里加一行 `@include <本仓库绝对路径>/AGENTS.md` 即可。
 
-### 首次建表
+### 初始化：新建一张表 或 绑定到已有表
+
+#### 方式 A：新建（首次使用推荐）
 
 ```bash
 bash scripts/bootstrap.sh
+# 已有 .config.json 想再新建一张并把指针切过去：
+bash scripts/bootstrap.sh --force
 ```
 
 脚本会：
@@ -70,9 +74,21 @@ bash scripts/bootstrap.sh
 
 - 两张涉及模型维度的图表（饼图 / 每月使用最多的模型），手动调配色到模型色系
 
+#### 方式 B：绑定到你已有的那张表
+
+当你换了台机器、或想让多个仓库共用同一张表时，直接给链接即可：
+
+```bash
+bash scripts/link.sh "https://xxx.feishu.cn/base/<base_token>?table=<table_id>"
+# 已有 .config.json 想切换：
+bash scripts/link.sh --force "https://xxx.feishu.cn/base/<base_token>"
+```
+
+脚本会从 URL 解析 `base_token`，扫一遍字段列表按字段名反查出所有 `field_ids`，校验 schema 完整后写入 `.config.json`。前提是该表必须是由本 skill 的 `bootstrap.sh` 建出来的（字段名和类型要对得上）。
+
 ### 使用
 
-对你的 AI Agent 说：
+初始化完成后 `.config.json` 就记住了当前指向的那张表，之后**不需要再提供链接**，对 AI Agent 说：
 
 > 把这次改动整理到表格中
 

@@ -1,5 +1,7 @@
 # bootstrap 生成的运行时配置，含真实 base_token / open_id，严禁提交
 .config.json
+# link.sh / bootstrap.sh --force 切换指针时产生的历史配置备份
+.config.json.bak.*
 
 # macOS
 .DS_Store
