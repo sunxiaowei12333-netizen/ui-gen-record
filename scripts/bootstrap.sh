@@ -56,21 +56,26 @@ if [[ -z "$USER_OPEN_ID" ]]; then
 fi
 echo "[bootstrap] 当前用户: $USER_NAME ($USER_OPEN_ID)"
 
-# ===== 步骤 2：创建 Base =====
-echo "[bootstrap] 创建 Base: $BASE_NAME"
-BASE_RESP="$(lark-cli base +base-create --as bot --name "$BASE_NAME" --time-zone "$TIME_ZONE")"
-BASE_TOKEN="$(echo "$BASE_RESP" | jq -r '.data.base.base_token')"
-BASE_URL="$(echo "$BASE_RESP"   | jq -r '.data.base.url')"
-if [[ -z "$BASE_TOKEN" || "$BASE_TOKEN" == "null" ]]; then
-  echo "[bootstrap] 创建 Base 失败：$BASE_RESP"
-  exit 3
+# ===== 步骤 2：创建 Base（支持通过环境变量跳过） =====
+if [[ -n "${BASE_TOKEN:-}" ]]; then
+  echo "[bootstrap] 复用已有 BASE_TOKEN=$BASE_TOKEN"
+  BASE_URL="${BASE_URL:-https://my.feishu.cn/base/$BASE_TOKEN}"
+else
+  echo "[bootstrap] 创建 Base: $BASE_NAME"
+  BASE_RESP="$(lark-cli base +base-create --as bot --name "$BASE_NAME" --time-zone "$TIME_ZONE")"
+  BASE_TOKEN="$(echo "$BASE_RESP" | jq -r '.data.base.base_token')"
+  BASE_URL="$(echo "$BASE_RESP"   | jq -r '.data.base.url')"
+  if [[ -z "$BASE_TOKEN" || "$BASE_TOKEN" == "null" ]]; then
+    echo "[bootstrap] 创建 Base 失败：$BASE_RESP"
+    exit 3
+  fi
+  echo "[bootstrap] BASE_TOKEN=$BASE_TOKEN"
+  echo "[bootstrap] BASE_URL=$BASE_URL"
 fi
-echo "[bootstrap] BASE_TOKEN=$BASE_TOKEN"
-echo "[bootstrap] BASE_URL=$BASE_URL"
 
 # ===== 步骤 3：默认表重命名、拿默认视图 =====
 sleep 1
-TABLE_ID="$(lark-cli base +table-list --as bot --base-token "$BASE_TOKEN" | jq -r '.data.items[0].table_id')"
+TABLE_ID="$(lark-cli base +table-list --as bot --base-token "$BASE_TOKEN" | jq -r '.data.tables[0].id')"
 [[ -z "$TABLE_ID" || "$TABLE_ID" == "null" ]] && { echo "[bootstrap] 获取 table_id 失败"; exit 4; }
 echo "[bootstrap] TABLE_ID=$TABLE_ID"
 
@@ -78,16 +83,16 @@ sleep 1
 lark-cli base +table-update --as bot --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" --name "$TABLE_NAME" >/dev/null
 
 sleep 1
-VIEW_ID="$(lark-cli base +view-list --as bot --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" | jq -r '.data.items[0].view_id')"
+VIEW_ID="$(lark-cli base +view-list --as bot --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" | jq -r '.data.views[0].id')"
 echo "[bootstrap] VIEW_ID=$VIEW_ID"
 
 # ===== 步骤 4：改默认字段、建业务字段 =====
 sleep 1
 DEFAULT_FIELDS="$(lark-cli base +field-list --as bot --base-token "$BASE_TOKEN" --table-id "$TABLE_ID")"
-F_TEXT="$(echo       "$DEFAULT_FIELDS" | jq -r '.data.items[] | select(.field_name=="文本") | .field_id')"
-F_SELECT="$(echo     "$DEFAULT_FIELDS" | jq -r '.data.items[] | select(.field_name=="单选") | .field_id')"
-F_DATE="$(echo       "$DEFAULT_FIELDS" | jq -r '.data.items[] | select(.field_name=="日期") | .field_id')"
-F_ATTACHMENT="$(echo "$DEFAULT_FIELDS" | jq -r '.data.items[] | select(.field_name=="附件") | .field_id')"
+F_TEXT="$(echo       "$DEFAULT_FIELDS" | jq -r '.data.fields[] | select(.name=="文本") | .id')"
+F_SELECT="$(echo     "$DEFAULT_FIELDS" | jq -r '.data.fields[] | select(.name=="单选") | .id')"
+F_DATE="$(echo       "$DEFAULT_FIELDS" | jq -r '.data.fields[] | select(.name=="日期") | .id')"
+F_ATTACHMENT="$(echo "$DEFAULT_FIELDS" | jq -r '.data.fields[] | select(.name=="附件") | .id')"
 
 sleep 1
 lark-cli base +field-update --as bot --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" --field-id "$F_TEXT" \
@@ -146,7 +151,7 @@ F_MONTH="$(create_formula '{"type":"formula","name":"月份","expression":"TEXT(
 # ===== 步骤 5：视图按「月份」降序分组 =====
 sleep 1
 lark-cli base +view-set-group --as bot --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" --view-id "$VIEW_ID" \
-  --json "[{\"field\":\"$F_MONTH\",\"desc\":true}]" >/dev/null
+  --json "{\"group_config\":[{\"field\":\"$F_MONTH\",\"desc\":true}]}" >/dev/null
 echo "[bootstrap] 视图已按「月份」降序分组"
 
 # ===== 步骤 6：创建仪表盘 + 6 个 block =====
