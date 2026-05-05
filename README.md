@@ -1,4 +1,4 @@
-# ui-gen-record
+# ui-gen-record-feishu
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![Cursor](https://img.shields.io/badge/Cursor-supported-black?logo=cursor)](https://cursor.sh)
